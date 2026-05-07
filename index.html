@@ -1,0 +1,693 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BLACKTIDE Scrim Analytics</title>
+
+  <link rel="stylesheet" href="style.css">
+
+  <!-- PNG Export Library -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+
+<body>
+
+<div class="background-glow"></div>
+
+<!-- ================= INPUT PAGE ================= -->
+
+<div class="container" id="inputPage">
+
+  <header class="hero">
+    <h1>SCRIM ANALYTICS</h1>
+    <p>To process stats from BLACKTIDE matches</p>
+  </header>
+
+  <!-- TARGETS -->
+
+  <section class="glass-card targets">
+
+    <h2>Team Targets</h2>
+
+    <div class="target-grid">
+
+      <div>
+        <label>Target KDA</label>
+
+        <input
+          type="number"
+          id="targetKDA"
+          step="0.1"
+          value="1.5"
+        >
+      </div>
+
+      <div>
+        <label>Target Kills</label>
+
+        <input
+          type="number"
+          id="targetKills"
+          value="15"
+        >
+      </div>
+
+    </div>
+
+  </section>
+
+  <!-- CSV TOOLS -->
+
+  <section class="glass-card csv-tools">
+
+    <h2>CSV Tools</h2>
+
+    <div class="button-row">
+
+      <button
+        class="neon-btn"
+        onclick="exportCSV()"
+      >
+        Export CSV
+      </button>
+
+      <label class="upload-btn">
+
+        Import CSV
+
+        <input
+          type="file"
+          id="csvFile"
+          accept=".csv"
+          hidden
+        >
+      </label>
+
+    </div>
+
+  </section>
+
+  <!-- MATCHES -->
+
+  <div id="matchesContainer"></div>
+
+  <!-- ACTIONS -->
+
+  <div class="button-row center">
+
+    <button
+      class="neon-btn"
+      onclick="addMatch()"
+    >
+      + Add Match
+    </button>
+
+    <button
+      class="submit-btn"
+      onclick="generateReview()"
+    >
+      Generate Review
+    </button>
+
+  </div>
+
+</div>
+
+<!-- ================= RESULTS PAGE ================= -->
+
+<div class="container hidden" id="resultsPage">
+
+  <header class="hero">
+    <h1>PLAYER PERFORMANCE</h1>
+    <p>BLACKTIDE Match Analytics</p>
+  </header>
+
+  <div id="resultsContainer"></div>
+
+  <div class="button-row center">
+
+    <button
+      class="neon-btn"
+      onclick="goBack()"
+    >
+      ← Back
+    </button>
+
+    <button
+      class="submit-btn"
+      onclick="exportResultsPNG()"
+    >
+      Export PNG
+    </button>
+
+  </div>
+
+</div>
+
+<!-- ================= SCRIPT ================= -->
+
+<script>
+
+let matchCount = 0;
+
+/* ================= ADD MATCH ================= */
+
+function addMatch() {
+
+  matchCount++;
+
+  const matchDiv =
+    document.createElement("div");
+
+  matchDiv.classList.add(
+    "glass-card",
+    "match"
+  );
+
+  matchDiv.id = `match-${matchCount}`;
+
+  matchDiv.innerHTML = `
+    <div class="match-header">
+
+      <h2>Match ${matchCount}</h2>
+
+      <button
+        class="small-btn"
+        onclick="addPlayerRow(${matchCount})"
+      >
+        + Player
+      </button>
+
+    </div>
+
+    <table>
+
+      <thead>
+        <tr>
+          <th>Player</th>
+          <th>Kills</th>
+          <th>Deaths</th>
+          <th>Assists</th>
+        </tr>
+      </thead>
+
+      <tbody id="tbody-${matchCount}">
+      </tbody>
+
+    </table>
+  `;
+
+  document
+    .getElementById("matchesContainer")
+    .appendChild(matchDiv);
+
+  addPlayerRow(matchCount);
+}
+
+/* ================= ADD PLAYER ================= */
+
+function addPlayerRow(matchId) {
+
+  const tbody =
+    document.getElementById(`tbody-${matchId}`);
+
+  const row =
+    document.createElement("tr");
+
+  row.innerHTML = `
+    <td>
+      <input type="text" class="playerName">
+    </td>
+
+    <td>
+      <input type="number" class="kills">
+    </td>
+
+    <td>
+      <input type="number" class="deaths">
+    </td>
+
+    <td>
+      <input type="number" class="assists">
+    </td>
+  `;
+
+  tbody.appendChild(row);
+}
+
+/* ================= COLOUR CLASS ================= */
+
+function getClass(value, target) {
+
+  if (value >= target)
+    return "good";
+
+  if (value >= target * 0.85)
+    return "average";
+
+  return "bad";
+}
+
+/* ================= GENERATE RESULTS ================= */
+
+function generateReview() {
+
+  const targetKDA =
+    parseFloat(
+      document.getElementById("targetKDA").value
+    );
+
+  const targetKills =
+    parseInt(
+      document.getElementById("targetKills").value
+    );
+
+  const players = {};
+
+  for (let m = 1; m <= matchCount; m++) {
+
+    const tbody =
+      document.getElementById(`tbody-${m}`);
+
+    if (!tbody) continue;
+
+    const rows =
+      tbody.querySelectorAll("tr");
+
+    rows.forEach(row => {
+
+      const name =
+        row.querySelector(".playerName")
+          .value.trim();
+
+      const kills =
+        parseInt(
+          row.querySelector(".kills").value
+        ) || 0;
+
+      const deaths =
+        parseInt(
+          row.querySelector(".deaths").value
+        ) || 0;
+
+      const assists =
+        parseInt(
+          row.querySelector(".assists").value
+        ) || 0;
+
+      if (!name) return;
+
+      /* KDA FORMULA */
+
+      const kda =
+        deaths === 0
+          ? (kills + assists)
+          : (kills + assists) / deaths;
+
+      if (!players[name]) {
+
+        players[name] = {
+
+          maps: [],
+
+          totalKills: 0,
+          totalDeaths: 0,
+          totalAssists: 0
+
+        };
+      }
+
+      players[name].maps.push({
+
+        match: m,
+        kills,
+        deaths,
+        assists,
+        kda
+
+      });
+
+      players[name].totalKills += kills;
+      players[name].totalDeaths += deaths;
+      players[name].totalAssists += assists;
+
+    });
+  }
+
+  const resultsContainer =
+    document.getElementById("resultsContainer");
+
+  resultsContainer.innerHTML = "";
+
+  for (const player in players) {
+
+    const p = players[player];
+
+    const overallKDA =
+      p.totalDeaths === 0
+        ? (p.totalKills + p.totalAssists)
+        : (p.totalKills + p.totalAssists)
+          / p.totalDeaths;
+
+    let rowsHTML = "";
+
+    p.maps.forEach(map => {
+
+      rowsHTML += `
+        <tr>
+
+          <td>Map ${map.match}</td>
+
+          <td class="${getClass(
+            map.kills,
+            targetKills
+          )}">
+            ${map.kills}
+          </td>
+
+          <td>
+            ${map.deaths}
+          </td>
+
+          <td>
+            ${map.assists}
+          </td>
+
+          <td class="${getClass(
+            map.kda,
+            targetKDA
+          )}">
+            ${map.kda.toFixed(2)}
+          </td>
+
+        </tr>
+      `;
+    });
+
+    const card =
+      document.createElement("div");
+
+    card.classList.add("player-card");
+
+    card.innerHTML = `
+      <div class="player-title">
+
+        <h2>${player}</h2>
+
+        <div class="overall-kd
+          ${getClass(
+            overallKDA,
+            targetKDA
+          )}">
+
+          KDA ${overallKDA.toFixed(2)}
+
+        </div>
+
+      </div>
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Map</th>
+            <th>Kills</th>
+            <th>Deaths</th>
+            <th>Assists</th>
+            <th>KDA</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          ${rowsHTML}
+        </tbody>
+
+        <tfoot>
+
+          <tr>
+
+            <td>OVERALL</td>
+
+            <td class="${getClass(
+              p.totalKills,
+              targetKills
+            )}">
+              ${p.totalKills}
+            </td>
+
+            <td>
+              ${p.totalDeaths}
+            </td>
+
+            <td>
+              ${p.totalAssists}
+            </td>
+
+            <td class="${getClass(
+              overallKDA,
+              targetKDA
+            )}">
+              ${overallKDA.toFixed(2)}
+            </td>
+
+          </tr>
+
+        </tfoot>
+
+      </table>
+    `;
+
+    resultsContainer.appendChild(card);
+  }
+
+  document
+    .getElementById("inputPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("resultsPage")
+    .classList.remove("hidden");
+}
+
+/* ================= BACK BUTTON ================= */
+
+function goBack() {
+
+  document
+    .getElementById("resultsPage")
+    .classList.add("hidden");
+
+  document
+    .getElementById("inputPage")
+    .classList.remove("hidden");
+}
+
+/* ================= CSV EXPORT ================= */
+
+function exportCSV() {
+
+  let csv =
+    "match,player,kills,deaths,assists\n";
+
+  for (let m = 1; m <= matchCount; m++) {
+
+    const tbody =
+      document.getElementById(`tbody-${m}`);
+
+    if (!tbody) continue;
+
+    const rows =
+      tbody.querySelectorAll("tr");
+
+    rows.forEach(row => {
+
+      const name =
+        row.querySelector(".playerName").value;
+
+      const kills =
+        row.querySelector(".kills").value;
+
+      const deaths =
+        row.querySelector(".deaths").value;
+
+      const assists =
+        row.querySelector(".assists").value;
+
+      csv +=
+        `${m},${name},${kills},${deaths},${assists}\n`;
+    });
+  }
+
+  const blob =
+    new Blob([csv], {
+      type: "text/csv"
+    });
+
+  const url =
+    URL.createObjectURL(blob);
+
+  const a =
+    document.createElement("a");
+
+  a.href = url;
+
+  a.download =
+    "BLACKTIDE_scrim_data.csv";
+
+  a.click();
+}
+
+/* ================= CSV IMPORT ================= */
+
+document
+.getElementById("csvFile")
+.addEventListener("change", function(e) {
+
+  const file = e.target.files[0];
+
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = function(event) {
+
+    const lines =
+      event.target.result.split("\n");
+
+    document
+      .getElementById("matchesContainer")
+      .innerHTML = "";
+
+    matchCount = 0;
+
+    const grouped = {};
+
+    lines.slice(1).forEach(line => {
+
+      const [
+        match,
+        player,
+        kills,
+        deaths,
+        assists
+      ] = line.split(",");
+
+      if (!match) return;
+
+      if (!grouped[match]) {
+        grouped[match] = [];
+      }
+
+      grouped[match].push({
+        player,
+        kills,
+        deaths,
+        assists
+      });
+
+    });
+
+    Object.keys(grouped).forEach(matchNum => {
+
+      addMatch();
+
+      const tbody =
+        document.getElementById(
+          `tbody-${matchNum}`
+        );
+
+      tbody.innerHTML = "";
+
+      grouped[matchNum].forEach(data => {
+
+        const row =
+          document.createElement("tr");
+
+        row.innerHTML = `
+
+          <td>
+            <input
+              type="text"
+              class="playerName"
+              value="${data.player}"
+            >
+          </td>
+
+          <td>
+            <input
+              type="number"
+              class="kills"
+              value="${data.kills}"
+            >
+          </td>
+
+          <td>
+            <input
+              type="number"
+              class="deaths"
+              value="${data.deaths}"
+            >
+          </td>
+
+          <td>
+            <input
+              type="number"
+              class="assists"
+              value="${data.assists}"
+            >
+          </td>
+        `;
+
+        tbody.appendChild(row);
+
+      });
+    });
+  };
+
+  reader.readAsText(file);
+});
+
+/* ================= PNG EXPORT ================= */
+
+async function exportResultsPNG() {
+
+  const resultsPage =
+    document.getElementById("resultsPage");
+
+  const buttons =
+    resultsPage.querySelector(".button-row");
+
+  buttons.style.display = "none";
+
+  const canvas =
+    await html2canvas(resultsPage, {
+
+      backgroundColor: "#050816",
+      scale: 2,
+      useCORS: true
+
+    });
+
+  buttons.style.display = "flex";
+
+  const link =
+    document.createElement("a");
+
+  link.download =
+    "BLACKTIDE-performance-review.png";
+
+  link.href =
+    canvas.toDataURL("image/png");
+
+  link.click();
+}
+
+/* ================= START ================= */
+
+addMatch();
+
+</script>
+
+</body>
+</html>
