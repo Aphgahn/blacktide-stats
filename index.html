@@ -1,14 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
   <title>BLACKTIDE Scrim Analytics</title>
 
   <link rel="stylesheet" href="style.css">
 
-  <!-- PNG Export Library -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
 </head>
 
 <body>
@@ -20,8 +27,13 @@
 <div class="container" id="inputPage">
 
   <header class="hero">
+
     <h1>SCRIM ANALYTICS</h1>
-    <p>To process stats from BLACKTIDE matches</p>
+
+    <p>
+      To process stats from BLACKTIDE matches
+    </p>
+
   </header>
 
   <!-- TARGETS -->
@@ -33,6 +45,7 @@
     <div class="target-grid">
 
       <div>
+
         <label>Target KDA</label>
 
         <input
@@ -41,9 +54,11 @@
           step="0.1"
           value="1.5"
         >
+
       </div>
 
       <div>
+
         <label>Target Kills</label>
 
         <input
@@ -51,13 +66,14 @@
           id="targetKills"
           value="15"
         >
+
       </div>
 
     </div>
 
   </section>
 
-  <!-- CSV TOOLS -->
+  <!-- CSV -->
 
   <section class="glass-card csv-tools">
 
@@ -82,6 +98,7 @@
           accept=".csv"
           hidden
         >
+
       </label>
 
     </div>
@@ -116,11 +133,19 @@
 
 <!-- ================= RESULTS PAGE ================= -->
 
-<div class="container hidden" id="resultsPage">
+<div
+  class="container hidden"
+  id="resultsPage"
+>
 
   <header class="hero">
+
     <h1>PLAYER PERFORMANCE</h1>
-    <p>BLACKTIDE Match Analytics</p>
+
+    <p>
+      BLACKTIDE Match Analytics
+    </p>
+
   </header>
 
   <div id="resultsContainer"></div>
@@ -145,8 +170,6 @@
 
 </div>
 
-<!-- ================= SCRIPT ================= -->
-
 <script>
 
 let matchCount = 0;
@@ -168,6 +191,7 @@ function addMatch() {
   matchDiv.id = `match-${matchCount}`;
 
   matchDiv.innerHTML = `
+
     <div class="match-header">
 
       <h2>Match ${matchCount}</h2>
@@ -181,21 +205,27 @@ function addMatch() {
 
     </div>
 
-    <table>
+    <div class="table-wrapper">
 
-      <thead>
-        <tr>
-          <th>Player</th>
-          <th>Kills</th>
-          <th>Deaths</th>
-          <th>Assists</th>
-        </tr>
-      </thead>
+      <table>
 
-      <tbody id="tbody-${matchCount}">
-      </tbody>
+        <thead>
 
-    </table>
+          <tr>
+            <th>Player</th>
+            <th>Kills</th>
+            <th>Deaths</th>
+            <th>Assists</th>
+          </tr>
+
+        </thead>
+
+        <tbody id="tbody-${matchCount}">
+        </tbody>
+
+      </table>
+
+    </div>
   `;
 
   document
@@ -216,6 +246,7 @@ function addPlayerRow(matchId) {
     document.createElement("tr");
 
   row.innerHTML = `
+
     <td>
       <input type="text" class="playerName">
     </td>
@@ -231,6 +262,7 @@ function addPlayerRow(matchId) {
     <td>
       <input type="number" class="assists">
     </td>
+
   `;
 
   tbody.appendChild(row);
@@ -249,7 +281,7 @@ function getClass(value, target) {
   return "bad";
 }
 
-/* ================= GENERATE RESULTS ================= */
+/* ================= GENERATE REVIEW ================= */
 
 function generateReview() {
 
@@ -298,11 +330,9 @@ function generateReview() {
 
       if (!name) return;
 
-      /* KDA FORMULA */
-
       const kda =
         deaths === 0
-          ? (kills + assists)
+          ? kills + assists
           : (kills + assists) / deaths;
 
       if (!players[name]) {
@@ -346,7 +376,7 @@ function generateReview() {
 
     const overallKDA =
       p.totalDeaths === 0
-        ? (p.totalKills + p.totalAssists)
+        ? p.totalKills + p.totalAssists
         : (p.totalKills + p.totalAssists)
           / p.totalDeaths;
 
@@ -355,6 +385,7 @@ function generateReview() {
     p.maps.forEach(map => {
 
       rowsHTML += `
+
         <tr>
 
           <td>Map ${map.match}</td>
@@ -366,13 +397,9 @@ function generateReview() {
             ${map.kills}
           </td>
 
-          <td>
-            ${map.deaths}
-          </td>
+          <td>${map.deaths}</td>
 
-          <td>
-            ${map.assists}
-          </td>
+          <td>${map.assists}</td>
 
           <td class="${getClass(
             map.kda,
@@ -391,6 +418,7 @@ function generateReview() {
     card.classList.add("player-card");
 
     card.innerHTML = `
+
       <div class="player-title">
 
         <h2>${player}</h2>
@@ -407,55 +435,59 @@ function generateReview() {
 
       </div>
 
-      <table>
+      <div class="table-wrapper">
 
-        <thead>
-          <tr>
-            <th>Map</th>
-            <th>Kills</th>
-            <th>Deaths</th>
-            <th>Assists</th>
-            <th>KDA</th>
-          </tr>
-        </thead>
+        <table>
 
-        <tbody>
-          ${rowsHTML}
-        </tbody>
+          <thead>
 
-        <tfoot>
+            <tr>
+              <th>Map</th>
+              <th>Kills</th>
+              <th>Deaths</th>
+              <th>Assists</th>
+              <th>KDA</th>
+            </tr>
 
-          <tr>
+          </thead>
 
-            <td>OVERALL</td>
+          <tbody>
 
-            <td class="${getClass(
-              p.totalKills,
-              targetKills
-            )}">
-              ${p.totalKills}
-            </td>
+            ${rowsHTML}
 
-            <td>
-              ${p.totalDeaths}
-            </td>
+          </tbody>
 
-            <td>
-              ${p.totalAssists}
-            </td>
+          <tfoot>
 
-            <td class="${getClass(
-              overallKDA,
-              targetKDA
-            )}">
-              ${overallKDA.toFixed(2)}
-            </td>
+            <tr>
 
-          </tr>
+              <td>OVERALL</td>
 
-        </tfoot>
+              <td class="${getClass(
+                p.totalKills,
+                targetKills
+              )}">
+                ${p.totalKills}
+              </td>
 
-      </table>
+              <td>${p.totalDeaths}</td>
+
+              <td>${p.totalAssists}</td>
+
+              <td class="${getClass(
+                overallKDA,
+                targetKDA
+              )}">
+                ${overallKDA.toFixed(2)}
+              </td>
+
+            </tr>
+
+          </tfoot>
+
+        </table>
+
+      </div>
     `;
 
     resultsContainer.appendChild(card);
@@ -468,9 +500,11 @@ function generateReview() {
   document
     .getElementById("resultsPage")
     .classList.remove("hidden");
+
+  window.scrollTo(0, 0);
 }
 
-/* ================= BACK BUTTON ================= */
+/* ================= BACK ================= */
 
 function goBack() {
 
@@ -481,6 +515,8 @@ function goBack() {
   document
     .getElementById("inputPage")
     .classList.remove("hidden");
+
+  window.scrollTo(0, 0);
 }
 
 /* ================= CSV EXPORT ================= */
@@ -660,16 +696,41 @@ async function exportResultsPNG() {
 
   buttons.style.display = "none";
 
+  const originalWidth =
+    resultsPage.style.width;
+
+  const originalMaxWidth =
+    resultsPage.style.maxWidth;
+
+  resultsPage.style.width = "1400px";
+  resultsPage.style.maxWidth = "1400px";
+
+  window.scrollTo(0, 0);
+
   const canvas =
     await html2canvas(resultsPage, {
 
       backgroundColor: "#050816",
-      scale: 2,
-      useCORS: true
+
+      scale: 3,
+
+      useCORS: true,
+
+      logging: false,
+
+      windowWidth: 1600,
+
+      scrollY: -window.scrollY
 
     });
 
   buttons.style.display = "flex";
+
+  resultsPage.style.width =
+    originalWidth;
+
+  resultsPage.style.maxWidth =
+    originalMaxWidth;
 
   const link =
     document.createElement("a");
@@ -678,7 +739,10 @@ async function exportResultsPNG() {
     "BLACKTIDE-performance-review.png";
 
   link.href =
-    canvas.toDataURL("image/png");
+    canvas.toDataURL(
+      "image/png",
+      1.0
+    );
 
   link.click();
 }
